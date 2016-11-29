@@ -1,0 +1,525 @@
+<!-- Sophie Lucy
+sjl2185
+
+UI Design Assignment 3
+
+file based on https://depts.washington.edu/aimgroup/proj/dollar/
+additions and edits made by me to fit the application functions -->
+
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Play with Dope Videos</title>
+    <link href="styles.css" rel="stylesheet" type="text/css" />
+    <!--[if IE]><script src="excanvas.js"></script><![endif]-->
+    <script type="text/javascript" src="script.js"></script>
+    <script type="text/javascript" src="gentilis-normal-normal.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="unistroke.js"></script>
+    <script type="text/javascript">
+    <!--
+    //
+    // Startup
+    //
+    var _isDown, _points, _r, _g, _rc, vidArray, sizeArray;
+
+    function onLoadEvent() {
+        _points = new Array();
+        _r = new DollarRecognizer();
+        vidArray = new Array();
+        sizeArray = [{
+            X: 320,
+            Y: 240
+        }, {
+            X: 384,
+            Y: 288
+        }, {
+            X: 448,
+            Y: 336
+        }, {
+            X: 640,
+            Y: 480
+        }, {
+            X: 704,
+            Y: 528
+        }];
+        var canvas = document.getElementById('myCanvas');
+        _g = canvas.getContext('2d');
+        // _g.fillStyle = "rgb(225,225,225)";
+        // _g.strokeStyle = "rgb(225,225,225)";
+        // _g.lineWidth = 3;
+        _g.font = "6pt Courier";
+        _rc = getCanvasRect(canvas); // canvas rect on page
+        // _g.fillStyle = "rgb(225,225,225)";
+        // _g.fillRect(0, 0, _rc.width, 20);
+
+        _isDown = false;
+    }
+
+    function getCanvasRect(canvas) {
+        var w = canvas.width;
+        var h = canvas.height;
+
+        var cx = canvas.offsetLeft;
+        var cy = canvas.offsetTop;
+        while (canvas.offsetParent != null) {
+            canvas = canvas.offsetParent;
+            cx += canvas.offsetLeft;
+            cy += canvas.offsetTop;
+        }
+        return {
+            x: cx,
+            y: cy,
+            width: w,
+            height: h
+        };
+    }
+
+    function getScrollY() {
+        var scrollY = $(window).scrollTop();
+        return scrollY;
+    }
+    //
+    // Mouse Events
+    //
+    function mouseDownEvent(x, y) {
+        document.onselectstart = function() {
+                return false;
+            } // disable drag-select
+        document.onmousedown = function() {
+                return false;
+            } // disable drag-select
+        _isDown = true;
+        x -= _rc.x;
+        y -= _rc.y - getScrollY();
+        if (_points.length > 0)
+            _g.clearRect(0, 0, _rc.width, _rc.height);
+        _points.length = 1; // clear
+        _points[0] = new Point(x, y);
+        _g.fillRect(x - 4, y - 3, 9, 9);
+    }
+
+    function mouseMoveEvent(x, y) {
+        if (_isDown) {
+            x -= _rc.x;
+            y -= _rc.y - getScrollY();
+            _points[_points.length] = new Point(x, y); // append
+            drawConnectedPoint(_points.length - 2, _points.length - 1);
+        }
+    }
+
+    function arePlaying() {
+        for (var j in vidArray) {
+            if (!vidArray[j].paused)
+            ;
+            else
+                return false;
+        }
+        return true;
+    }
+
+    function addVideo() {
+        if (!document.getElementById('videoBlock')) {
+            $(".area").append("<div id=videoBlock> </div>");
+        }
+        var newVid = document.createElement("video");
+
+        newVid.src = "http://media.w3.org/2010/05/video/movie_300.mp4";
+        newVid.width = "582.4";
+        newVid.height = "436.8";
+        // give the new video an id so it can be identified later
+        newVid.id = "vid" + (vidArray.length);
+        console.log(newVid.id);
+        // newVid.poster = "cake.jpeg";
+        $('#videoBlock').append(newVid);
+        //adds the new video element to the video array
+        vidArray.push(newVid);
+        var rect = newVid.getBoundingClientRect();
+    }
+
+    function playPauseVideos(areaNum) {
+
+        //play all videos if video is not specified
+        if (areaNum == null) {
+            //check if all videos are playing
+            if (arePlaying()) {
+                //if all are playing then pause
+                for (var i in vidArray)
+                    vidArray[i].pause();
+            } else {
+                for (var i in vidArray)
+                    vidArray[i].play();
+            }
+        }
+
+        //play or pause specific video
+        else {
+            if (vidArray[areaNum].paused)
+                vidArray[areaNum].play();
+            else
+                vidArray[areaNum].pause();
+        }
+    }
+
+
+    function deleteVideos(areaNum) {
+        function complete() {
+            $("#vid" + areaNum).remove();
+            // removes object at point in array
+            vidArray.splice(areaNum, 1);
+            var i = areaNum;
+
+            // update the ids for all subseq videos
+            while (i < vidArray.length) {
+                vidArray[i].id = "vid" + i;
+                i++;
+            }
+        }
+
+        //delete all videos
+        if (areaNum == null) {
+            //delete all videos
+            $("#videoBlock").fadeOut("slow").remove();
+        }
+
+        //delete specific video
+        else {
+            // looks for the video by id in tag and removes video object
+            $("#vid" + areaNum).fadeOut("slow", complete);
+        }
+    }
+
+
+    function playbackF(areaNum) {
+        //playback faster all videos
+        if (areaNum == null) {
+
+            for (var i in vidArray) {
+                if (vidArray[i].playbackRate >= 0.25)
+                    vidArray[i].playbackRate = vidArray[i].playbackRate + 0.25;
+                else
+                ;
+            }
+        }
+
+        //playback faster specific video
+        else {
+            if (vidArray[areaNum].playbackRate >= 0.25)
+                vidArray[areaNum].playbackRate = vidArray[areaNum].playbackRate + 0.25;
+
+        }
+    }
+
+    function playbackS(areaNum) {
+        //playback slower all videos
+        //don't let speed go lower that 0 as this means that video will play backwards
+        if (areaNum == null) {
+            for (var i in vidArray) {
+                if (vidArray[i].playbackRate <= 2.0)
+                    vidArray[i].playbackRate = vidArray[i].playbackRate - 0.25;
+            }
+        }
+
+        //playback slower specific video
+        else {
+            if (vidArray[areaNum].playbackRate <= 2.0)
+                vidArray[areaNum].playbackRate = vidArray[areaNum].playbackRate - 0.25;
+
+        }
+    }
+
+    function changeSize(areaNum) {
+        //change size of all
+        if (areaNum == null) {
+            for (var i in vidArray) {
+                if (vidArray[i].height < 703.04) {
+                    vidArray[i].height *= 1.3;
+                    vidArray[i].width *= 1.3;
+                } else {
+                    vidArray[i].height = 240;
+                    vidArray[i].width = 320;
+                }
+
+            }
+        }
+
+        //change size of 1 video
+        else {
+            if (vidArray[areaNum].height < 703.04) {
+                vidArray[areaNum].height *= 1.3;
+                vidArray[areaNum].width *= 1.3;
+            } else {
+                vidArray[areaNum].height = 240;
+                vidArray[areaNum].width = 320;
+            }
+        }
+    }
+
+    function seekF(areaNum) {
+        if (areaNum == null) {
+            for (var i in vidArray) {
+                if (vidArray[i].currentTime > vidArray[i].length - 15)
+                ;
+                else
+                    vidArray[i].currentTime += 15;
+            }
+        }
+
+        //seek forward specific video
+        else {
+            if (vidArray[areaNum].currentTime > vidArray[areaNum].length - 15)
+            ;
+            else
+                vidArray[areaNum].currentTime += 15;
+
+        }
+    }
+
+    function seekB(areaNum) {
+        if (areaNum == null) {
+            for (var i in vidArray) {
+                if (vidArray[i].currentTime < 15)
+                    vidArray[i].currentTime = 0;
+                else
+                    vidArray[i].currentTime -= 15;
+            }
+        }
+
+        //seek forward specific video
+        else {
+            if (vidArray[areaNum].currentTime < 15)
+                vidArray[areaNum].currentTime = 0;
+            else
+                vidArray[areaNum].currentTime -= 15;
+
+        }
+    }
+
+    function incVol(areaNum) {
+        //increase volume of all videos
+        if (areaNum == null) {
+            for (var i in vidArray) {
+                //increase volume if not at limit
+                if (vidArray[i].volume < 1.0)
+                    vidArray[i].volume += 0.2;
+            }
+        }
+
+        //increase volume of specific video
+        else {
+            if (vidArray[areaNum].volume < 1.0)
+                vidArray[areaNum].volume += 0.2;
+        }
+
+    }
+
+    function decVol(areaNum) {
+        //decrease volume of all videos
+        if (areaNum == null) {
+            for (var i in vidArray)
+            //decrease volume if not at limit
+                if (vidArray[i].volume >= 0.0)
+                vidArray[i].volume -= 0.2;
+        }
+
+        //decrease volume of specific video
+        else {
+            if (vidArray[areaNum].volume >= 0.0)
+                vidArray[areaNum].volume -= 0.2;
+        }
+    }
+
+    function muteVol(areaNum) {
+        if (areaNum == null) {
+
+            for (var i in vidArray)
+                vidArray[i].volume = 0.0;
+        } else {
+            vidArray[areaNum].volume = 0.0;
+        }
+    }
+
+    function detectSelected() {
+        var first = _points[0];
+        var last = _points[_points.length - 1];
+
+        //compare points for each video
+        for (var i in vidArray) {
+            var bounds = vidArray[i].getBoundingClientRect();
+            //compare first point to the bounds of each video
+            if (first.X >= bounds.left && first.X <= bounds.right) {
+                if (first.Y >= bounds.top && first.Y <= bounds.bottom) {
+                    //compare the last points
+                    if (last.X >= bounds.left && last.X <= bounds.right) {
+                        if (last.Y >= bounds.top && last.Y <= bounds.bottom)
+                        //if the first and last points are in the same video then only perform action in one video
+                            console.log("I'm in area " + i);
+                        return i;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+
+    function mouseUpEvent(x, y) {
+        document.onselectstart = function() {
+                return true;
+            } // enable drag-select
+        document.onmousedown = function() {
+                return true;
+            } // enable drag-select
+        if (_isDown) {
+            _isDown = false;
+            if (_points.length >= 10) {
+                var result = _r.Recognize(_points, document.getElementById('useProtractor').checked);
+                drawText(result.Name);
+                console.log(result.Name);
+                var videoArea = detectSelected();
+
+                switch (result.Name) {
+
+                    case "add video":
+                        addVideo();
+                        break;
+                    case "play pause":
+                        playPauseVideos(videoArea);
+                        break;
+                    case "delete video":
+                        deleteVideos(videoArea);
+                        break;
+                    case "playback faster":
+                        playbackF(videoArea);
+                        break;
+                    case "playback slower":
+                        playbackS(videoArea);
+                        break;
+                    case "seek forward":
+                        seekF(videoArea);
+                        break;
+                    case "seek back":
+                        seekB(videoArea);
+                        break;
+                    case "volume up":
+                        incVol(videoArea);
+                        break;
+                    case "volume down":
+                        decVol(videoArea);
+                        break;
+                    case "mute":
+                        muteVol(videoArea);
+                        break;
+                    case "change size":
+                        changeSize(videoArea);
+                        break;
+                    default:
+                        console.log("default");
+                        break;
+                }
+
+
+            } else // fewer than 10 points were inputted
+            {
+                drawText("Could not recognize your gesture. Please try again.");
+            }
+        }
+    }
+
+    function onClickAddCustom() {
+        var name = document.getElementById('custom').value;
+        if (_points.length >= 10 && name.length > 0) {
+            var num = _r.AddGesture(name, _points);
+            drawText("\"" + name + "\" added. Number of \"" + name + "\"s defined: " + num + ".");
+        }
+    }
+
+    function drawText(str) {
+        _g.fillStyle = "rgb(255,255,255)";
+        _g.fillRect(0, 70, 80, 20);
+        _g.fillStyle = "rgb(0,0,0)";
+        _g.fillText(str, 1, 80);
+    }
+
+    function drawConnectedPoint(from, to) {
+        _g.beginPath();
+        _g.moveTo(_points[from].X, _points[from].Y);
+        _g.lineTo(_points[to].X, _points[to].Y);
+        _g.closePath();
+        _g.stroke();
+    }
+
+    function round(n, d) // round 'n' to 'd' decimals
+    {
+        d = Math.pow(10, d);
+        return Math.round(n * d) / d
+    }
+    //
+    // Unistroke Adding and Clearing
+    //
+    function onClickAddExisting() {
+        if (_points.length >= 10) {
+            var unistrokes = document.getElementById('unistrokes');
+            var name = unistrokes[unistrokes.selectedIndex].value;
+            var num = _r.AddGesture(name, _points);
+            drawText("\"" + name + "\" added. Number of \"" + name + "\"s defined: " + num + ".");
+        }
+    }
+
+    function onClickAddCustom() {
+        var name = document.getElementById('custom').value;
+        if (_points.length >= 10 && name.length > 0) {
+            var num = _r.AddGesture(name, _points);
+            drawText("\"" + name + "\" added. Number of \"" + name + "\"s defined: " + num + ".");
+        }
+    }
+
+    function onClickCustom() {
+        document.getElementById('custom').select();
+    }
+
+    function onClickDelete() {
+        var num = _r.DeleteUserGestures(); // deletes any user-defined unistrokes
+        alert("All user-defined gestures have been deleted. Only the 1 predefined gesture remains for each of the " + num + " types.");
+    }
+    // -->
+    </script>
+</head>
+
+<body onload="onLoadEvent()">
+    <div>
+        <p>
+            <button class="button" onClick="window.open('gesture-help.png');"><span class="icon">Help</span></button>
+        </p>
+    </div>
+    <div class=area>
+        <div id="videoBlock">
+            <!--                 <video src="choc-cake.mp4" id="vid" width="640" height="480" poster="cake.jpeg"></video>
+ -->
+        </div>
+    </div>
+    <p>
+        <form style="font-size:10pt">
+            <input type="hidden" name="search" id="useGSS" checked>
+            </input>
+            <br />
+            <input type="hidden" name="search" id="useProtractor">
+        </form>
+    </p>
+    <!--             <p>Add as example of custom type:</p>
+<p>
+    <input type="text" id="custom" style="width:130px" value="Type name here..." onclick="onClickCustom()" onkeypress="if (event.keyCode == 13) onClickAddCustom()" />
+</p>
+<p>
+    <input type="button" style="width:64px" value="  Add   " onclick="onClickAddCustom()" />
+</p> -->
+    <canvas id="myCanvas" onmousedown="mouseDownEvent(event.clientX, event.clientY)" onmousemove="mouseMoveEvent(event.clientX, event.clientY)" onmouseup="mouseUpEvent(event.clientX, event.clientY)" oncontextmenu="return false;">
+        <span style="background-color:#ffff88;">The &lt;canvas&gt; element is not supported by this browser.</span>
+    </canvas>
+    <br/>
+    <br/>
+</body>
+
+</html>
